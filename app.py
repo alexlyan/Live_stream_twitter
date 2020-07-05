@@ -5,6 +5,7 @@ from settings import Hashtags
 # Dash libraries and components
 import dash
 import dash_bootstrap_components as dbc
+import plotly.express as px
 from dash.exceptions import PreventUpdate
 from dash_table import DataTable
 import dash_html_components as html
@@ -13,8 +14,23 @@ from plotly import express as px
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 from dash_table.FormatTemplate import Format
-
 from dash.dependencies import Input, Output, State
+
+# Libraries working with data
+from textblob import TextBlob
+from datetime import datetime
+import re
+import pandas as pd
+import numpy as np
+import os
+
+# Libraries working with database
+from sqlalchemy import create_engine
+
+# Launch database Listener
+
+engine = create_engine('sqlite:///server_db_1.db', echo=True)
+query = 'SELECT * FROM twitter_table'
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.LUMEN])
 
@@ -63,7 +79,7 @@ app.layout = html.Div(
                             'Sentiment Analysis'
                         ),
                         # Pie chart with sentiment analysis
-                        dcc.Graph(figure=figure),
+                        dcc.Graph('sentiment-analysis'),
                         # Table with last twits
                         dcc.Graph(figure=figure)
 
@@ -105,7 +121,11 @@ app.layout = html.Div(
             style={'paddingLeft': '3%'},
                  className='row'),
 
-        html.Br()
+        html.Br(),
+        dcc.Interval(
+            id='interval-component-slow',
+            interval=1 * 10000,  # in milliseconds
+            n_intervals=0)
     ],
     id="mainContainer",
     style={
@@ -115,5 +135,35 @@ app.layout = html.Div(
     }
 )
 
+
+@app.callback(Output('sentiment-analysis', 'figure'),
+              [Input('interval-component-slow', 'n_intervals')])
+def firstPanel(n_intervals):
+
+    df = pd.read_sql_query(query, engine)
+    sentiment_list = []
+    # neutral
+    sentiment_list.append(len(df[(df['Polarity'] >= -0.4) & (df['Polarity'] <= 0.4)]))
+    # negative
+    sentiment_list.append(sum(df['Polarity'] < -0.4))
+    # Positive
+    sentiment_list.append(sum(df['Polarity'] > 0.4))
+
+    labels = ['Neutral', 'Negative', 'Positive']
+    values = sentiment_list
+    fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.5, showlegend=False)], layout={'height': 280,
+                                                                                                    'margin': {'l': 0,
+                                                                                                               'r': 0,
+                                                                                                               'b': 50,
+                                                                                                               't':0}})
+    fig.update_layout(plot_bgcolor='#173F5F', paper_bgcolor='#173F5F')
+
+    return fig
+
 if __name__ == '__main__':
-    app.run_server(debug=True, port='8880')
+    # os.system('python3 data_collection.py')
+    app.run_server(debug=True, port='8800')
+
+
+
+
