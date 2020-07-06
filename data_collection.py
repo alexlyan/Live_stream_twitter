@@ -10,6 +10,7 @@ from tweepy import Cursor
 from textblob import TextBlob
 from datetime import datetime
 import re
+import time
 
 # Access to database
 from df_setup import engine
@@ -25,6 +26,7 @@ class StreamListener(tweepy.StreamListener):
     #         conn = engine.connect()
 
     def on_status(self, status):
+        time.sleep(5)
         # data collection from twit stream
         if status._json['retweeted']:
             # Avoid retweeted info, and only original tweets will be received

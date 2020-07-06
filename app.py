@@ -37,19 +37,6 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.LUMEN])
 
 server = app.server
 
-# Values for testing
-labels = ['Oxygen','Hydrogen','Carbon_Dioxide','Nitrogen']
-values = [4500, 2500, 1053, 500]
-figure = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.5, showlegend =False)],
-                   layout={'height': 280,
-                            'margin': {'l': 0,
-                                       'r': 0,
-                                       'b': 50,
-                                       't':0}})
-
-figure.update_layout(plot_bgcolor = colors['bgcolor'],
-                     paper_bgcolor=colors['bgcolor'])
-#
 
 app.layout = html.Div(
     [
@@ -293,7 +280,8 @@ def firstPanel(n_intervals):
                                    'b': 0,
                                    't': 0}})
     fig_2.update_layout(
-        plot_bgcolor=colors['bgcolor'], paper_bgcolor=colors['bgcolor'],
+                        plot_bgcolor=colors['bgcolor'],
+                        paper_bgcolor=colors['bgcolor'],
                         annotations=[dict(visible=True,
                                         font_color='white',
                                         text=f'{fd["Word"].values[0].title()}',
@@ -312,13 +300,10 @@ def firstPanel(n_intervals):
         fill_value=0).stack().reset_index()
 
     scatter = go.Figure(
-        xaxis=True,
-        layout={'legend': {'font': {'color': 'white',
+        layout={'width': 1000,
+            'legend': {'font': {'color': 'white',
                                     'size': 8}},
-            # 'margin': {'l': 20,
-            #                            'r': 20,
-            #                            'b': 0,
-            #                            't':20}
+
         }
     )
     # Create the graph
@@ -329,7 +314,8 @@ def firstPanel(n_intervals):
         showlegend=True,
         opacity=0.8,
         mode='lines',
-        line=dict(width=0.5, color='rgb(131, 90, 241)'),
+        line=dict(width=0.5,
+                  color='#0080ff'),
         stackgroup='one'
     ))
     scatter.add_trace(go.Scatter(
@@ -337,6 +323,8 @@ def firstPanel(n_intervals):
         y=result['Text'][result['Polarity'] > 0.4],
         name="Positive",
         opacity=0.8,
+        line=dict(width=0.5,
+                  color='#725EB7'),
         mode='lines',
         stackgroup='two'
     ))
@@ -345,12 +333,16 @@ def firstPanel(n_intervals):
         y=result['Text'][result['Polarity'] <= -0.4],
         name="Negative",
         opacity=0.8,
+        line=dict(width=0.5,
+                  color='#FF6792'),
         mode='lines',
         stackgroup='three'
     ))
 
     scatter.update_layout(plot_bgcolor=colors['bgcolor'],
-                          paper_bgcolor=colors['bgcolor']
+                          paper_bgcolor=colors['bgcolor'],
+                          xaxis=dict(visible=True,
+                                     color='white')
     )
 
 
