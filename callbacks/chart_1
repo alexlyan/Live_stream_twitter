@@ -1,0 +1,21 @@
+def firstPanel(n_intervals):
+
+    df = pd.read_sql_query(query, engine)
+    sentiment_list = []
+    # neutral
+    sentiment_list.append(len(df[(df['Polarity'] >= -0.4) & (df['Polarity'] <= 0.4)]))
+    # negative
+    sentiment_list.append(sum(df['Polarity'] < -0.4))
+    # Positive
+    sentiment_list.append(sum(df['Polarity'] > 0.4))
+
+    labels = ['Neutral', 'Negative', 'Positive']
+    values = sentiment_list
+    fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.5, showlegend=False)], layout={'height': 280,
+                                                                                                    'margin': {'l': 0,
+                                                                                                               'r': 0,
+                                                                                                               'b': 50,
+                                                                                                               't':0}})
+    fig.update_layout(plot_bgcolor='#173F5F', paper_bgcolor='#173F5F')
+
+    return fig
