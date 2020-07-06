@@ -1,5 +1,5 @@
 import os
-from settings import Hashtags, colors, interval_update, stop_words
+from settings import Hashtags, colors, interval_update, stop_words, TABLE_COLS
 # os.system('python3 data_collection.py')
 
 # Dash libraries and components
@@ -13,12 +13,12 @@ from dash_table import DataTable
 
 # Libraries working with data
 import pandas as pd
+from datetime import datetime
+from datetime import timedelta
 
 # Libraries for Tokenization
-
 import nltk
 nltk.download('punkt')
-nltk.download('stopwords')
 from nltk.probability import FreqDist
 from nltk.tokenize import word_tokenize
 
@@ -31,7 +31,7 @@ from sqlalchemy import create_engine
 # Launch database Listener
 engine = create_engine('sqlite:///server_db_1.db', echo=True)
 
-TABLE_COLS = ['Created_at', 'Text', 'Polarity']
+
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.LUMEN])
 
@@ -85,8 +85,8 @@ app.layout = html.Div(
                         # Pie chart with sentiment analysis
                         dcc.Graph('sentiment-analysis'),
                         # Table with last twits
-                        # dcc.Graph(figure=figure)
-                        # Sunburst of words
+                        html.Br(),
+                        html.P('Top-16 Words'),
                         dcc.Loading(dcc.Graph('count-pie'))
 
             ],
@@ -110,7 +110,7 @@ app.layout = html.Div(
                             className="control_label"
                         ),
                         # place for first figure
-                        dcc.Graph(figure=figure),
+                        dcc.Graph(id='live-update-scatter'),
                         #place for second figure
                         html.H3('Twits Table',
                                 style={'text-align': 'center',
@@ -224,12 +224,15 @@ app.layout = html.Div(
 )
 
 
-@app.callback(Output('sentiment-analysis', 'figure'),
+@app.callback([Output('sentiment-analysis', 'figure'),
+               Output('count-pie', 'figure'),
+               Output('live-update-scatter', 'figure')],
               [Input('interval-component-slow', 'n_intervals')])
 def firstPanel(n_intervals):
     # Data Wrangling for Pie Chart
-    query = 'SELECT Created_at, Polarity FROM twitter_table ORDER BY Created_at DESC'
+    query = 'SELECT Created_at, Text, Polarity FROM twitter_table ORDER BY Created_at DESC'
     df = pd.read_sql_query(query, engine)
+
     sentiment_list = []
     # neutral
     sentiment_list.append(len(df[(df['Polarity'] >= -0.4) & (df['Polarity'] <= 0.4)]))
@@ -259,16 +262,7 @@ def firstPanel(n_intervals):
                                         font_size=20,
                                         showarrow=True)])
 
-    return fig
-
-
-@app.callback(Output('count-pie', 'figure'),
-              [Input('interval-component-slow', 'n_intervals')])
-def countPie(n_intervals):
     # Data Wrangling for Pie Chart
-    query = 'SELECT Text FROM twitter_table'
-    df = pd.read_sql_query(query, engine)
-
     # Clean text from garbage word
     content = ' '.join(list(map(lambda x: x if x != None else '', list(df['Text']))))
 
@@ -283,7 +277,7 @@ def countPie(n_intervals):
 
     fd = pd.DataFrame(fdist.most_common(16), columns=["Word", "Frequency"]).drop([0]).reindex()
 
-    fig = go.Figure(data=[go.Pie(labels=list(fd['Word']),
+    fig_2 = go.Figure(data=[go.Pie(labels=list(fd['Word']),
                                  values=list(fd['Frequency']),
                                  hole=0.5,
                                  showlegend=False,
@@ -293,13 +287,14 @@ def countPie(n_intervals):
                                  )],
                     layout={
                         'height': 260,
-                            'width': 250,
-                            'margin': {'l': 0,
-                                       'r': 0,
-                                       'b': 0,
-                                       't': 0}})
-    fig.update_layout(plot_bgcolor=colors['bgcolor'], paper_bgcolor=colors['bgcolor'],
-                      annotations=[dict(visible=True,
+                        'width': 250,
+                        'margin': {'l': 0,
+                                   'r': 0,
+                                   'b': 0,
+                                   't': 0}})
+    fig_2.update_layout(
+        plot_bgcolor=colors['bgcolor'], paper_bgcolor=colors['bgcolor'],
+                        annotations=[dict(visible=True,
                                         font_color='white',
                                         text=f'{fd["Word"].values[0].title()}',
                                         x=0.5,
@@ -307,9 +302,59 @@ def countPie(n_intervals):
                                         font_size=20,
                                         showarrow=False)])
 
-    return fig
+
+    # Scatter Figure
+
+    # Convert UTC into PDT
+    df.loc[:, 'Created_at'] = pd.to_datetime(df['Created_at']).apply(lambda x: x + timedelta(hours=6))
+    df = df[df['Created_at'] >= (datetime.now() - timedelta(minutes=30))]
+    result = df.groupby([pd.Grouper(freq='30s', key='Created_at'), 'Polarity']).count().unstack(
+        fill_value=0).stack().reset_index()
+
+    scatter = go.Figure(
+        xaxis=True,
+        layout={'legend': {'font': {'color': 'white',
+                                    'size': 8}},
+            # 'margin': {'l': 20,
+            #                            'r': 20,
+            #                            'b': 0,
+            #                            't':20}
+        }
+    )
+    # Create the graph
+    scatter.add_trace(go.Scatter(
+        x=result['Created_at'][result['Polarity'] == 0],
+        y=result['Text'][result['Polarity'] == 0],
+        name="Neutrals",
+        showlegend=True,
+        opacity=0.8,
+        mode='lines',
+        line=dict(width=0.5, color='rgb(131, 90, 241)'),
+        stackgroup='one'
+    ))
+    scatter.add_trace(go.Scatter(
+        x=result['Created_at'][result['Polarity'] > 0.4],
+        y=result['Text'][result['Polarity'] > 0.4],
+        name="Positive",
+        opacity=0.8,
+        mode='lines',
+        stackgroup='two'
+    ))
+    scatter.add_trace(go.Scatter(
+        x=result['Created_at'][result['Polarity'] <= -0.4],
+        y=result['Text'][result['Polarity'] <= -0.4],
+        name="Negative",
+        opacity=0.8,
+        mode='lines',
+        stackgroup='three'
+    ))
+
+    scatter.update_layout(plot_bgcolor=colors['bgcolor'],
+                          paper_bgcolor=colors['bgcolor']
+    )
 
 
+    return fig, fig_2, scatter
 
 @app.callback(Output('table', 'data'),
               [Input('interval-component-slow', 'n_intervals')])

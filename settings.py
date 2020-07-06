@@ -1,11 +1,14 @@
+# Hashtags for Stream Listening
 Hashtags = ['canada']
+
+TABLE_COLS = ['Created_at', 'Text', 'Polarity']
 
 colors = {
     'bgcolor': '#173F5F',
     'txtcolor': '#e7eff6',
     'panelcolor': '#451e3e'}
 
-interval_update = 1500
+interval_update = 5000
 
 
 stop_words = stop_words = ['i', 'me', 'my', 'myself', 'we', 'our', 'ours', 'ourselves',
