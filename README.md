@@ -6,7 +6,7 @@ If you want to make your own database, you can use df_setup.py or use my own, bu
 
 If you want changed listening words, follow to settings.py and setup your wants.
 
-![Alt Text](live-stream.png)
+![Alt Text](record.mov)
 
 
 Further study:
