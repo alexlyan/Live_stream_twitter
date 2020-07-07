@@ -54,6 +54,8 @@ class TwitterTable(Base):
 # create tables
 def db_init():
     Base.metadata.create_all(engine)
+# from df_setup import engine, Base, db_init
+
 
 # for checking existing table and columns
 # from sqlalchemy import MetaData

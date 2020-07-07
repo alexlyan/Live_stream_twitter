@@ -18,7 +18,7 @@ from df_setup import engine
 # credentials
 from credentials import ACCESS_TOKEN, ACCESS_TOKEN_SECRET, CONSUMER_KEY, CONSUMER_SECRET
 
-import urllib3.contrib.pyopenssl
+from urllib3.exceptions import ProtocolError
 
 # Class and functions
 class StreamListener(tweepy.StreamListener):
@@ -118,4 +118,10 @@ if __name__ == '__main__':
     tag_list = settings.Hashtags
 
     # Listening twits
-    stream.filter(track=tag_list, stall_warnings=True)
+    while True:
+        try:
+            stream.filter(track=tag_list, stall_warnings=True)
+
+        except (ProtocolError, AttributeError):
+            continue
+

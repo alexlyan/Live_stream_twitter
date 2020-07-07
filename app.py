@@ -109,7 +109,6 @@ app.layout = html.Div(
                                             style_header={'textAlign': 'center',
                                                           'backgroundColor': colors['panelcolor']},
                                             style_cell={'font-family': 'Source Sans Pro',
-                                                        'overflow': 'hidden',
                                                         # 'minWidth': '100%',
                                                         'maxWidth': 40,
                                                         'overflowX': 'auto',
@@ -126,7 +125,7 @@ app.layout = html.Div(
                                                     {
                                                         'if': {
                                                             'filter_query': '{Polarity} > 0.2',
-                                                            'column_id': 'Created_at'
+                                                            'column_id': 'Added_at'
                                                         },
                                                         'backgroundColor': '#3D9970',
                                                         'color': colors['txtcolor']
@@ -151,7 +150,7 @@ app.layout = html.Div(
                                                 {
                                                     'if': {
                                                         'filter_query': '{Polarity} < -0.2',
-                                                        'column_id': 'Created_at'
+                                                        'column_id': 'Added_at'
                                                     },
                                                     'backgroundColor': '#FF4136',
                                                     'color': colors['txtcolor']
@@ -217,7 +216,7 @@ app.layout = html.Div(
               [Input('interval-component-slow', 'n_intervals')])
 def firstPanel(n_intervals):
     # Data Wrangling for Pie Chart
-    query = 'SELECT Created_at, Text, Polarity FROM twitter_table ORDER BY Created_at DESC'
+    query = 'SELECT Added_at, Text, Polarity FROM twitter_table ORDER BY Created_at DESC'
     df = pd.read_sql_query(query, engine)
 
     sentiment_list = []
@@ -294,10 +293,12 @@ def firstPanel(n_intervals):
     # Scatter Figure
 
     # Convert UTC into PDT
-    df.loc[:, 'Created_at'] = pd.to_datetime(df['Created_at']).apply(lambda x: x + timedelta(hours=6))
-    df = df[df['Created_at'] >= (datetime.now() - timedelta(minutes=30))]
-    result = df.groupby([pd.Grouper(freq='10s', key='Created_at'), 'Polarity']).count().unstack(
+    # df.loc[:, 'Created_at'] = pd.to_datetime(df['Created_at'])
+    df.loc[:, 'Added_at'] = pd.to_datetime(df['Added_at']).apply(lambda x: x + timedelta(hours=6))
+    df = df[df['Added_at'] >= (datetime.now() - timedelta(minutes=30))]
+    result = df.groupby([pd.Grouper(freq='10s', key='Added_at'), 'Polarity']).count().unstack(
         fill_value=0).stack().reset_index()
+    timeseries = result['Added_at'][result['Polarity'] == 0].reset_index(drop=True)
 
     scatter = go.Figure(
         layout={'width': 1000,
@@ -308,7 +309,7 @@ def firstPanel(n_intervals):
     )
     # Create the graph
     scatter.add_trace(go.Scatter(
-        x=result['Created_at'][result['Polarity'] == 0],
+        x=timeseries,
         y=result['Text'][result['Polarity'] == 0],
         name="Neutrals",
         showlegend=True,
@@ -319,7 +320,7 @@ def firstPanel(n_intervals):
         stackgroup='one'
     ))
     scatter.add_trace(go.Scatter(
-        x=result['Created_at'][result['Polarity'] > 0.4],
+        x=timeseries,
         y=result['Text'][result['Polarity'] > 0.4],
         name="Positive",
         opacity=0.8,
@@ -329,7 +330,7 @@ def firstPanel(n_intervals):
         stackgroup='two'
     ))
     scatter.add_trace(go.Scatter(
-        x=result['Created_at'][result['Polarity'] <= -0.4],
+        x=timeseries,
         y=result['Text'][result['Polarity'] <= -0.4],
         name="Negative",
         opacity=0.8,
@@ -353,11 +354,12 @@ def firstPanel(n_intervals):
 def sentimentable(n_intervals):
 
     # query for Table
-    query = 'SELECT Created_at, Text, Polarity FROM twitter_table ORDER BY Created_at DESC'
+    query = 'SELECT Added_at, Text, Polarity FROM twitter_table ORDER BY Created_at DESC'
 
     # Wrangling Table
     df_table = pd.read_sql_query(query, engine)
-    df_table.loc[:, 'Created_at'] = pd.to_datetime(df_table['Created_at']).apply(lambda x: x + timedelta(hours=6))
+    df_table.loc[:, 'Added_at'] = pd.to_datetime(df_table['Added_at']).apply(lambda x: x + timedelta(hours=6))
+    df_table['Added_at'] = df_table['Added_at'].apply(lambda x: x.strftime('%Y-%m-%d %H:%M:%S'))
     df_table = df_table.head(10)
     df_table.loc[:, 'Polarity'] = df_table.loc[:, 'Polarity'].apply(lambda x: f'{x:.2f}')
 
