@@ -1,39 +1,14 @@
-# def quick_color(s):
-#     # except return bg as app_colors['background']
-#     if s >= 0.3:
-#         # positive
-#         return "#002C0D"
-#     elif s <= -0.3:
-#         # negative:
-#         return "#270000"
-#
-#     else:
-#         return '#173F5F'
-#
-#
-# def generate_table(df, max_rows=5):
-#     return html.Table(className="responsive-table",
-#                       children=[
-#                           html.Thead(
-#                               html.Tr(
-#                                   children=[
-#                                       html.Th(col.title()) for col in df.columns.values],
-#                                   style={'color': '#e7eff6',
-#                                          'font-size': 10,
-#                                          'size': 2}
-#                               )
-#                           ),
-#                           html.Tbody(
-#                               [
-#
-#                                   html.Tr(
-#                                       children=[
-#                                           html.Td(data) for data in d
-#                                       ], style={'color': '#e7eff6',
-#                                                 'background-color': quick_color(d[2]),
-#                                                 'font-size': 10,
-#                                                 'size': 2}
-#                                   )
-#                                   for d in df.values.tolist()])
-#                       ]
-#                       )
+@app.callback(Output('table', 'data'),
+              [Input('interval-component-slow', 'n_intervals')])
+def sentimentable(n_intervals):
+
+    # query for Table
+    query = 'SELECT Created_at, Text, Polarity FROM twitter_table ORDER BY Created_at DESC'
+
+    # Wrangling Table
+    df_table = pd.read_sql_query(query, engine)
+    df_table.loc[:, 'Created_at'] = pd.to_datetime(df_table['Created_at']).apply(lambda x: x + timedelta(hours=6))
+    df_table = df_table.head(10)
+    df_table.loc[:, 'Polarity'] = df_table.loc[:, 'Polarity'].apply(lambda x: f'{x:.2f}')
+
+    return df_table.to_dict('rows')

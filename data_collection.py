@@ -18,6 +18,8 @@ from df_setup import engine
 # credentials
 from credentials import ACCESS_TOKEN, ACCESS_TOKEN_SECRET, CONSUMER_KEY, CONSUMER_SECRET
 
+import urllib3.contrib.pyopenssl
+
 # Class and functions
 class StreamListener(tweepy.StreamListener):
     """Class for listening and inserting data into database"""
@@ -26,7 +28,7 @@ class StreamListener(tweepy.StreamListener):
     #         conn = engine.connect()
 
     def on_status(self, status):
-        time.sleep(5)
+        time.sleep(2)
         # data collection from twit stream
         if status._json['retweeted']:
             # Avoid retweeted info, and only original tweets will be received
@@ -116,4 +118,4 @@ if __name__ == '__main__':
     tag_list = settings.Hashtags
 
     # Listening twits
-    stream.filter(track=tag_list)
+    stream.filter(track=tag_list, stall_warnings=True)

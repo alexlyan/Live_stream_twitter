@@ -125,7 +125,7 @@ app.layout = html.Div(
                                             style_data_conditional=[
                                                     {
                                                         'if': {
-                                                            'filter_query': '{Polarity} > 0.4',
+                                                            'filter_query': '{Polarity} > 0.2',
                                                             'column_id': 'Created_at'
                                                         },
                                                         'backgroundColor': '#3D9970',
@@ -133,7 +133,7 @@ app.layout = html.Div(
                                                     },
                                                     {
                                                         'if': {
-                                                            'filter_query': '{Polarity} > 0.4',
+                                                            'filter_query': '{Polarity} > 0.2',
                                                             'column_id': 'Text'
                                                         },
                                                         'backgroundColor': '#3D9970',
@@ -141,7 +141,7 @@ app.layout = html.Div(
                                                     },
                                                     {
                                                         'if': {
-                                                            'filter_query': '{Polarity} > 0.4',
+                                                            'filter_query': '{Polarity} > 0.2',
                                                             'column_id': 'Polarity'
                                                         },
                                                         'backgroundColor': '#3D9970',
@@ -150,7 +150,7 @@ app.layout = html.Div(
 
                                                 {
                                                     'if': {
-                                                        'filter_query': '{Polarity} < -0.4',
+                                                        'filter_query': '{Polarity} < -0.2',
                                                         'column_id': 'Created_at'
                                                     },
                                                     'backgroundColor': '#FF4136',
@@ -158,7 +158,7 @@ app.layout = html.Div(
                                                 },
                                                 {
                                                     'if': {
-                                                        'filter_query': '{Polarity} < -0.4',
+                                                        'filter_query': '{Polarity} < -0.2',
                                                         'column_id': 'Text'
                                                     },
                                                     'backgroundColor': '#FF4136',
@@ -166,7 +166,7 @@ app.layout = html.Div(
                                                 },
                                                 {
                                                     'if': {
-                                                        'filter_query': '{Polarity} < -0.4',
+                                                        'filter_query': '{Polarity} < -0.2',
                                                         'column_id': 'Polarity'
                                                     },
                                                     'backgroundColor': '#FF4136',
@@ -296,7 +296,7 @@ def firstPanel(n_intervals):
     # Convert UTC into PDT
     df.loc[:, 'Created_at'] = pd.to_datetime(df['Created_at']).apply(lambda x: x + timedelta(hours=6))
     df = df[df['Created_at'] >= (datetime.now() - timedelta(minutes=30))]
-    result = df.groupby([pd.Grouper(freq='30s', key='Created_at'), 'Polarity']).count().unstack(
+    result = df.groupby([pd.Grouper(freq='10s', key='Created_at'), 'Polarity']).count().unstack(
         fill_value=0).stack().reset_index()
 
     scatter = go.Figure(
@@ -357,6 +357,7 @@ def sentimentable(n_intervals):
 
     # Wrangling Table
     df_table = pd.read_sql_query(query, engine)
+    df_table.loc[:, 'Created_at'] = pd.to_datetime(df_table['Created_at']).apply(lambda x: x + timedelta(hours=6))
     df_table = df_table.head(10)
     df_table.loc[:, 'Polarity'] = df_table.loc[:, 'Polarity'].apply(lambda x: f'{x:.2f}')
 
