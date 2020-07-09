@@ -1,21 +1,31 @@
-# Scatter Figure
+from settings import colors
 
-    # Convert UTC into PDT
-    df.loc[:, 'Created_at'] = pd.to_datetime(df['Created_at']).apply(lambda x: x + timedelta(hours=6))
-    df = df[df['Created_at'] >= (datetime.now() - timedelta(minutes=30))]
-    result = df.groupby([pd.Grouper(freq='10s', key='Created_at'), 'Polarity']).count().unstack(
+# Scatter Figure
+import plotly.graph_objs as go
+
+# Libraries working with data
+import pandas as pd
+from datetime import datetime
+from datetime import timedelta
+
+
+def scatter_plot(df):
+    df.loc[:, 'Added_at'] = pd.to_datetime(df['Added_at']).apply(lambda x: x + timedelta(hours=6))
+    df = df[df['Added_at'] >= (datetime.now() - timedelta(minutes=30))]
+    result = df.groupby([pd.Grouper(freq='10s', key='Added_at'), 'Polarity']).count().unstack(
         fill_value=0).stack().reset_index()
+    timeseries = result['Added_at'][result['Polarity'] == 0].reset_index(drop=True)
 
     scatter = go.Figure(
         layout={'width': 1000,
-            'legend': {'font': {'color': 'white',
+                'legend': {'font': {'color': 'white',
                                     'size': 8}},
 
-        }
+                }
     )
     # Create the graph
     scatter.add_trace(go.Scatter(
-        x=result['Created_at'][result['Polarity'] == 0],
+        x=timeseries,
         y=result['Text'][result['Polarity'] == 0],
         name="Neutrals",
         showlegend=True,
@@ -26,7 +36,7 @@
         stackgroup='one'
     ))
     scatter.add_trace(go.Scatter(
-        x=result['Created_at'][result['Polarity'] > 0.4],
+        x=timeseries,
         y=result['Text'][result['Polarity'] > 0.4],
         name="Positive",
         opacity=0.8,
@@ -36,7 +46,7 @@
         stackgroup='two'
     ))
     scatter.add_trace(go.Scatter(
-        x=result['Created_at'][result['Polarity'] <= -0.4],
+        x=timeseries,
         y=result['Text'][result['Polarity'] <= -0.4],
         name="Negative",
         opacity=0.8,
@@ -50,4 +60,6 @@
                           paper_bgcolor=colors['bgcolor'],
                           xaxis=dict(visible=True,
                                      color='white')
-    )
+                          )
+
+    return scatter

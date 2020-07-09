@@ -1,4 +1,8 @@
-sentiment_list = []
+import plotly.graph_objs as go
+from settings import colors
+
+def pie_sent(df):
+    sentiment_list = []
     # neutral
     sentiment_list.append(len(df[(df['Polarity'] >= -0.4) & (df['Polarity'] <= 0.4)]))
     # negative
@@ -26,3 +30,4 @@ sentiment_list = []
                                         y=0.37,
                                         font_size=20,
                                         showarrow=True)])
+    return fig

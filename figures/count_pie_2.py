@@ -1,4 +1,19 @@
+from settings import  colors, stop_words
+
 # Data Wrangling for Pie Chart
+import plotly.graph_objs as go
+
+# Libraries working with data
+import pandas as pd
+
+# Libraries for Tokenization
+import nltk
+nltk.download('punkt')
+from nltk.probability import FreqDist
+from nltk.tokenize import word_tokenize
+
+def pie_count(df):
+
     # Clean text from garbage word
     content = ' '.join(list(map(lambda x: x if x != None else '', list(df['Text']))))
 
@@ -39,3 +54,4 @@
                                         font_size=20,
                                         showarrow=False)])
 
+    return fig_2

@@ -1,6 +1,11 @@
 import os
 from settings import Hashtags, colors, interval_update, stop_words, TABLE_COLS
-# os.system('python3 data_collection.py')
+
+# import figures
+from figures.pie_chart_1 import  pie_sent
+from figures.count_pie_2 import pie_count
+from figures.scatter_plot_3 import scatter_plot
+from figures.twit_table_4 import twit_table
 
 # Dash libraries and components
 import dash
@@ -13,14 +18,10 @@ from dash_table import DataTable
 
 # Libraries working with data
 import pandas as pd
-from datetime import datetime
-from datetime import timedelta
 
 # Libraries for Tokenization
 import nltk
 nltk.download('punkt')
-from nltk.probability import FreqDist
-from nltk.tokenize import word_tokenize
 
 
 #---------------------------------
@@ -219,151 +220,26 @@ def firstPanel(n_intervals):
     query = 'SELECT Added_at, Text, Polarity FROM twitter_table ORDER BY Created_at DESC'
     df = pd.read_sql_query(query, engine)
 
-    sentiment_list = []
-    # neutral
-    sentiment_list.append(len(df[(df['Polarity'] >= -0.4) & (df['Polarity'] <= 0.4)]))
-    # negative
-    sentiment_list.append(sum(df['Polarity'] < -0.4))
-    # Positive
-    sentiment_list.append(sum(df['Polarity'] > 0.4))
+    # first figure
+    fig = pie_sent(df)
 
-    labels = ['Neutral', 'Negative', 'Positive']
-    values = sentiment_list
-    fig = go.Figure(data=[go.Pie(labels=labels,
-                                 values=values,
-                                 hole=0.5,
-                                 showlegend=False,
-                                 marker= dict(colors=['#0080ff', '#FF6792', '#725EB7']))],
-                    layout={'height': 260,
-                            'margin': {'l': 0,
-                                       'r': 0,
-                                       'b': 0,
-                                       't':0}})
-    fig.update_layout(plot_bgcolor=colors['bgcolor'], paper_bgcolor=colors['bgcolor'],
-                      annotations=[dict(visible=True,
-                                        font_color='white',
-                                        text=f'{len(df)/1000:.2f}K',
-                                        x=0.55,
-                                        y=0.37,
-                                        font_size=20,
-                                        showarrow=True)])
-
-    # Data Wrangling for Pie Chart
-    # Clean text from garbage word
-    content = ' '.join(list(map(lambda x: x if x != None else '', list(df['Text']))))
-
-    # Tokenization
-    tokenized_word = word_tokenize(content)
-    # stop_words = set(stopwords.words("english"))
-    filtered_sent = []
-    for w in tokenized_word:
-        if (w not in stop_words) and (len(w) >= 3):
-            filtered_sent.append(w)
-    fdist = FreqDist(filtered_sent)
-
-    fd = pd.DataFrame(fdist.most_common(16), columns=["Word", "Frequency"]).drop([0]).reindex()
-
-    fig_2 = go.Figure(data=[go.Pie(labels=list(fd['Word']),
-                                 values=list(fd['Frequency']),
-                                 hole=0.5,
-                                 showlegend=False,
-                                 hoverinfo='all',
-                                 textinfo='label',
-                                 automargin=False
-                                 )],
-                    layout={
-                        'height': 260,
-                        'width': 250,
-                        'margin': {'l': 0,
-                                   'r': 0,
-                                   'b': 0,
-                                   't': 0}})
-    fig_2.update_layout(
-                        plot_bgcolor=colors['bgcolor'],
-                        paper_bgcolor=colors['bgcolor'],
-                        annotations=[dict(visible=True,
-                                        font_color='white',
-                                        text=f'{fd["Word"].values[0].title()}',
-                                        x=0.5,
-                                        y=0.5,
-                                        font_size=20,
-                                        showarrow=False)])
-
+    # second figure
+    fig_2 = pie_count(df)
 
     # Scatter Figure
-
-    # Convert UTC into PDT
-    # df.loc[:, 'Created_at'] = pd.to_datetime(df['Created_at'])
-    df.loc[:, 'Added_at'] = pd.to_datetime(df['Added_at']).apply(lambda x: x + timedelta(hours=6))
-    df = df[df['Added_at'] >= (datetime.now() - timedelta(minutes=30))]
-    result = df.groupby([pd.Grouper(freq='10s', key='Added_at'), 'Polarity']).count().unstack(
-        fill_value=0).stack().reset_index()
-    timeseries = result['Added_at'][result['Polarity'] == 0].reset_index(drop=True)
-
-    scatter = go.Figure(
-        layout={'width': 1000,
-            'legend': {'font': {'color': 'white',
-                                    'size': 8}},
-
-        }
-    )
-    # Create the graph
-    scatter.add_trace(go.Scatter(
-        x=timeseries,
-        y=result['Text'][result['Polarity'] == 0],
-        name="Neutrals",
-        showlegend=True,
-        opacity=0.8,
-        mode='lines',
-        line=dict(width=0.5,
-                  color='#0080ff'),
-        stackgroup='one'
-    ))
-    scatter.add_trace(go.Scatter(
-        x=timeseries,
-        y=result['Text'][result['Polarity'] > 0.4],
-        name="Positive",
-        opacity=0.8,
-        line=dict(width=0.5,
-                  color='#725EB7'),
-        mode='lines',
-        stackgroup='two'
-    ))
-    scatter.add_trace(go.Scatter(
-        x=timeseries,
-        y=result['Text'][result['Polarity'] <= -0.4],
-        name="Negative",
-        opacity=0.8,
-        line=dict(width=0.5,
-                  color='#FF6792'),
-        mode='lines',
-        stackgroup='three'
-    ))
-
-    scatter.update_layout(plot_bgcolor=colors['bgcolor'],
-                          paper_bgcolor=colors['bgcolor'],
-                          xaxis=dict(visible=True,
-                                     color='white')
-    )
-
+    scatter = scatter_plot(df)
 
     return fig, fig_2, scatter
+
 
 @app.callback(Output('table', 'data'),
               [Input('interval-component-slow', 'n_intervals')])
 def sentimentable(n_intervals):
-
     # query for Table
-    query = 'SELECT Added_at, Text, Polarity FROM twitter_table ORDER BY Created_at DESC'
+    query = 'SELECT Added_at, Text, Polarity FROM twitter_table ORDER BY Added_at DESC'
 
     # Wrangling Table
-    df_table = pd.read_sql_query(query, engine)
-    df_table.loc[:, 'Added_at'] = pd.to_datetime(df_table['Added_at']).apply(lambda x: x + timedelta(hours=6))
-    df_table['Added_at'] = df_table['Added_at'].apply(lambda x: x.strftime('%Y-%m-%d %H:%M:%S'))
-    df_table = df_table.head(10)
-    df_table.loc[:, 'Polarity'] = df_table.loc[:, 'Polarity'].apply(lambda x: f'{x:.2f}')
-
-    return df_table.to_dict('rows')
+    return twit_table(query, engine)
 
 if __name__ == '__main__':
     app.run_server(debug=True, port='8800')

@@ -59,12 +59,12 @@ def db_init():
 
 # for checking existing table and columns
 # from sqlalchemy import MetaData
-# from sqlalchemy import MetaData
-# m = MetaData()
-# m.reflect(engine)
-# for table in m.tables.values():
-#     print(table.name)
-#     for column in table.c:
-#         print(column.name)
+from sqlalchemy import MetaData
+m = MetaData()
+m.reflect(engine)
+for table in m.tables.values():
+    print(table.name)
+    for column in table.c:
+        print(column.name)
 
 
